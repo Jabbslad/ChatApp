@@ -13,3 +13,21 @@ type
 
 proc newServer(): Server =
   Server(socket: newAsyncSocket(), clients: @[])
+
+proc loop(server: Server, port = 7687) {.async.} =
+  server.socket.bindAddr(port.Port)
+  server.socket.listen()
+  while true:
+    let (netAddr, clientSocket) = await server.socket.acceptAddr()
+    echo("Accepted connection from ", netAddr)
+    let client = Client(
+      socket: clientSocket,
+      netAddress: netAddr,
+      id: server.clients.len,
+      connected: true
+    )
+    server.clients.add(client) 
+
+var server = newServer()
+
+waitFor loop(server)
