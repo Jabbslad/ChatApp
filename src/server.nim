@@ -14,6 +14,23 @@ type
 proc newServer(): Server =
   Server(socket: newAsyncSocket(), clients: @[])
 
+proc `$`(client: Client): string =
+  $client.id & " (" & client.netAddress & ")"
+
+proc processMessages(server: Server, client: Client) {.async.} =
+  while true:
+    let line = await client.socket.recvLine()
+    if line.len == 0:
+      echo(client, " disconnected!")
+      client.connected = false
+      client.socket.close()
+      return
+
+    echo(client, " sent: ", line)
+    for c in server.clients:
+      if c.id != client.id and c.connected:
+        await c.socket.send(line & "\c\l")
+
 proc loop(server: Server, port = 7687) {.async.} =
   server.socket.bindAddr(port.Port)
   server.socket.listen()
@@ -26,7 +43,8 @@ proc loop(server: Server, port = 7687) {.async.} =
       id: server.clients.len,
       connected: true
     )
-    server.clients.add(client) 
+    server.clients.add(client)
+    asyncCheck processMessages(server, client)
 
 var server = newServer()
 
