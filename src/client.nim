@@ -16,13 +16,15 @@ proc connect(socket: AsyncSocket, serverAddress: string) {.async.} =
 
 let serverAddress = paramStr(1)
 let socket = newAsyncSocket()
+echo "params: ", paramCount()
+let username = if paramCount() == 2: paramStr(2) else: "Anonymous"
 
 asyncCheck connect(socket, serverAddress)
 
 var messageFlowVar = spawn stdin.readLine()
 while true:
   if messageFlowVar.isReady():
-    let message = createMessage("Anonymous", ^messageFlowVar)
+    let message = createMessage(username, ^messageFlowVar)
     asyncCheck socket.send(message)
     messageFlowVar = spawn stdin.readLine()
 
